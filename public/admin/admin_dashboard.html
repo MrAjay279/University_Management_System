@@ -452,6 +452,7 @@
                     clearForm('#addStudentForm');
                     showNotification('#addStudentNotification', 'Student added successfully!', true);
                 }).fail(function(xhr) {
+                    console.log(xhr.responseText);
                     showNotification('#addStudentNotification', 'Error adding student: ' + xhr.responseText, false);
                 });
             });

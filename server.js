@@ -9,6 +9,7 @@ const port = 3070;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -56,6 +57,7 @@ app.post('/auth/login', (req, res) => {
 
 // Route to handle adding a new student
 app.post('/admin/addStudent', (req, res) => {
+    console.log(req.body);
     const studentName = req.body.studentName;
     const FName = req.body.FatherName;
     const stid = req.body.stid;
@@ -63,10 +65,10 @@ app.post('/admin/addStudent', (req, res) => {
     const dept = req.body.Dept;
     const year = req.body.Year;
     const pass = req.body.pas;
-    const role = "student";
     // Insert the new student into the database
-    db.query('INSERT INTO students (ID,Name,Father_Name,Mobile_Number, Department,Year, Password,role) VALUES(?,?,?,?,?,?,?,?)', [stid, studentName, FName,no, dept, year,pass,role], (err, result) => {
+    db.query('INSERT INTO students (ID,Name,Father_Name,Mobile_Number, Department,Year, Password) VALUES(?,?,?,?,?,?,?)', [stid, studentName, FName,no, dept, year,pass], (err, result) => {
         if (err) {
+            console.error('MySQL Error:', err);
             res.status(500).send('Error adding student');
         } else {
             res.status(200).send('Student added successfully');
@@ -109,7 +111,7 @@ app.post('/admin/removeStudent',(req, res) => {
 //Route to handle deleting a faculty
 app.post('/admin/removeFaculty',(req, res) => {
     const id = req.body.id;
-    db.query('DELETE FROM Faculty WHERE ID = (?)',[id],(err, result) => {
+    db.query('DELETE FROM faculty WHERE ID = (?)',[id],(err, result) => {
         if (err) {
             res.status(500).send('Error removing Faculty');
         } else {
@@ -144,6 +146,60 @@ app.get('/admin/faculty', (req, res) => {
     });
 });
 
+app.post('/faculty/updateMarks', (req, res) => {
+    const { studentId, subjectKRR, subjectNLP, subjectSTM, subjectIOT, subjectNLPLab, subjectDALab } = req.body;
+
+    const sql = `UPDATE reports 
+                 SET subjectKRR=?, subjectNLP=?, subjectSTM=?, subjectIOT=?, subjectNLPLab=?, subjectDALab=? 
+                 WHERE id=?`;
+
+    db.query(sql, [subjectKRR, subjectNLP, subjectSTM, subjectIOT, subjectNLPLab, subjectDALab, studentId], (err, result) => {
+        if (err) {
+            console.error('Database Error:', err);  // Log errors for debugging
+            return res.status(500).json({ message: 'Error updating marks' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Student ID not found' });
+        }
+
+        res.status(200).json({ message: 'Marks updated successfully' });
+    });
+});
+
+
+
+
+app.get('/faculty/getInfo/:id', (req, res) => {
+    const facultyId = req.params.id;
+    const query = "SELECT Name FROM faculty WHERE ID = ?";
+
+    db.query(query, [facultyId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Database query error" });
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ message: "Faculty not found" });
+        }
+        res.json({ name: result[0].Name });
+    });
+});
+
+// API Endpoint to fetch faculty details
+app.get("/faculty/:id", (req, res) => {
+    const facultyId = req.params.id;
+    const query = "SELECT * FROM faculty WHERE ID = ?";
+
+    db.query(query, [facultyId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Database query error" });
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ message: "Faculty not found" });
+        }
+        res.json(result[0]);
+    });
+});
 
 // Serve the index.html file at the root URL
 app.get('/', (req, res) => {
